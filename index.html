@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ebola Diagnosis Image Classifier</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f2f2f2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 30px;
+        margin: 0;
+      }
+
+      h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      input[type="file"] {
+        margin-bottom: 20px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        cursor: pointer;
+      }
+
+      #uploaded-image img {
+        max-width: 300px;
+        max-height: 300px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #label-container {
+        margin-top: 20px;
+        width: 300px;
+      }
+
+      .bar-label {
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 4px;
+      }
+
+      .bar-wrapper {
+        background-color: #ddd;
+        height: 24px;
+        width: 100%;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 15px;
+      }
+
+      .bar {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.5s ease;
+      }
+
+      .color-0 {
+        background-color: #4caf50;
+      } /* green */
+      .color-1 {
+        background-color: #2196f3;
+      } /* blue */
+      .color-2 {
+        background-color: #ff9800;
+      } /* orange */
+      .color-3 {
+        background-color: #f44336;
+      } /* red */
+      .color-4 {
+        background-color: #9c27b0;
+      } /* purple */
+      .color-5 {
+        background-color: #009688;
+      } /* teal */
+    </style>
+  </head>
+  <body>
+    <h2>Ebola Diagnosis Image Classifier</h2>
+    <input type="file" accept="image/*" onchange="predictImage(event)" />
+    <div id="uploaded-image"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+      const modelURLPath = "./models/";
+      let model, maxPredictions;
+
+      window.onload = async () => {
+        const modelURL = modelURLPath + "model.json";
+        const metadataURL = modelURLPath + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+      };
+
+      async function predictImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.onload = async () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 224;
+          canvas.height = 224;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, 224, 224);
+
+          document.getElementById("uploaded-image").innerHTML = "";
+          document.getElementById("uploaded-image").appendChild(img);
+
+          const prediction = await model.predict(canvas);
+          showPredictions(prediction);
+        };
+      }
+
+      function showPredictions(predictions) {
+        const container = document.getElementById("label-container");
+        container.innerHTML = "";
+
+        predictions.forEach((pred, index) => {
+          const label = document.createElement("div");
+          label.className = "bar-label";
+          label.textContent = `${pred.className} (${(
+            pred.probability * 100
+          ).toFixed(1)}%)`;
+
+          const barWrapper = document.createElement("div");
+          barWrapper.className = "bar-wrapper";
+
+          const bar = document.createElement("div");
+          bar.className = `bar color-${index % 6}`;
+          bar.style.width = `${pred.probability * 100}%`;
+
+          barWrapper.appendChild(bar);
+          container.appendChild(label);
+          container.appendChild(barWrapper);
+        });
+      }
+    </script>
+  </body>
+</html>
